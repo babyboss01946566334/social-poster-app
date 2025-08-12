@@ -1,9 +1,9 @@
 buildscript {
     ext.kotlin_version = '1.7.10'
     repositories {
-        google()
-        mavenCentral()
+        // এই সেকশনটি খালি রাখুন অথবা google() এবং mavenCentral() লাইন দুটি ডিলিট করে দিন
     }
+
     dependencies {
         classpath 'com.android.tools.build:gradle:7.3.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -13,8 +13,7 @@ buildscript {
 
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        // এই সেকশনটিও খালি রাখুন অথবা google() এবং mavenCentral() লাইন দুটি ডিলিট করে দিন
     }
 }
 
