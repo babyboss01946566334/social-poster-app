@@ -1,0 +1,12 @@
+workflows:
+  android-release-build:
+    name: Android Release Build
+    environment:
+      flutter: stable
+    scripts:
+      - flutter clean
+      - flutter pub get
+      - flutter gen-l10n
+      - flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
