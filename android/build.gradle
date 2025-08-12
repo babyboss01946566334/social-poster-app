@@ -1,7 +1,8 @@
 buildscript {
     ext.kotlin_version = '1.7.10'
     repositories {
-        // এই সেকশনটি খালি রাখুন অথবা google() এবং mavenCentral() লাইন দুটি ডিলিট করে দিন
+        google()
+        mavenCentral()
     }
 
     dependencies {
@@ -13,7 +14,8 @@ buildscript {
 
 allprojects {
     repositories {
-        // এই সেকশনটিও খালি রাখুন অথবা google() এবং mavenCentral() লাইন দুটি ডিলিট করে দিন
+        google()
+        mavenCentral()
     }
 }
 
