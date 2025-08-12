@@ -1,3 +1,5 @@
+// android/settings.gradle
+
 pluginManagement {
     repositories {
         google()
@@ -7,12 +9,15 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    // এই লাইনটি নিশ্চিত করে যে রিপোজিটরিগুলো শুধুমাত্র এই ফাইল থেকেই নেওয়া হবে
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    
+    // প্রোজেক্টের সব মডিউলের জন্য রিপোজিটরি এখানে ঘোষণা করা হয়েছে
     repositories {
         google()
         mavenCentral()
     }
 }
 
-rootProject.name = "android"
+rootProject.name = 'android'
 include ':app'
