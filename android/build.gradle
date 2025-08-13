@@ -1,13 +1,13 @@
 buildscript {
-    ext.kotlin_version = '1.8.22' // লেটেস্ট স্টেবল ভার্সন
+    ext.kotlin_version = '1.9.23' // আপনার প্রোজেক্ট অনুযায়ী কোটলিন ভার্সন দিন
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2' // লেটেস্ট স্টেবল ভার্সন
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.google.gms:google-services:4.4.0' // লেটেস্ট স্টেবল ভার্সন
+        // Firebase ব্যবহার করার জন্য google-services প্লাগইন যোগ করা হয়েছে
+        classpath 'com.google.gms:google-services:4.4.1'
     }
 }
 
