@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+// প্রয়োজনীয় প্যাকেজগুলো ইম্পোর্ট করা হচ্ছে
+import 'package.flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,39 +11,47 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package.flutter_gen/gen_l10n/app_localizations.dart';
 
+// Workmanager এর জন্য একটি টপ-লেভেল ফাংশন যা ব্যাকগ্রাউন্ডে কাজ করবে
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    // ব্যাকগ্রাউন্ড টাস্কের জন্য Firebase পুনরায় চালু করা হচ্ছে
     await Firebase.initializeApp();
     
     if (inputData == null) {
-      return Future.value(false);
+      return Future.value(false); // যদি কোনো ডেটা না থাকে তবে ব্যর্থ হবে
     }
 
     final String content = inputData['content'];
     final String docId = inputData['docId'];
 
     try {
+      // সোশ্যাল মিডিয়ায় পোস্ট শেয়ার করার চেষ্টা
       await SocialShare.shareOptions(content);
+      // সফল হলে Firestore-এ স্ট্যাটাস আপডেট করা
       await FirebaseFirestore.instance.collection('scheduled_posts').doc(docId).update({'status': 'posted'});
       return Future.value(true);
     } catch (e) {
+      // ব্যর্থ হলে Firestore-এ স্ট্যাটাস আপডেট করা
       await FirebaseFirestore.instance.collection('scheduled_posts').doc(docId).update({'status': 'failed'});
       return Future.value(false);
     }
   });
 }
 
+// অ্যাপ্লিকেশনের মূল ফাংশন
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  tz_data.initializeTimeZones();
+  await Firebase.initializeApp(); // Firebase চালু করা হচ্ছে
+  tz_data.initializeTimeZones(); // টাইমজোন ডেটা চালু করা হচ্ছে
+  // Workmanager চালু করা হচ্ছে এবং ডিবাগ মোড বন্ধ রাখা হচ্ছে
   await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
   runApp(const SocialSchedulerApp());
 }
 
+// মূল অ্যাপ ক্লাস
 class SocialSchedulerApp extends StatelessWidget {
   const SocialSchedulerApp({super.key});
 
@@ -50,14 +59,14 @@ class SocialSchedulerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle, // স্থানীয়করণের জন্য শিরোনাম
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
+      supportedLocales: const [ // সমর্থিত ভাষা
         Locale('en'),
         Locale('bn'),
         Locale('es'),
@@ -66,6 +75,7 @@ class SocialSchedulerApp extends StatelessWidget {
         primarySwatch: Colors.blue, 
         scaffoldBackgroundColor: Colors.grey[100]
       ),
+      // ব্যবহারকারীর লগইন অবস্থা পরীক্ষা করে সঠিক স্ক্রিন দেখানো হচ্ছে
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -79,6 +89,7 @@ class SocialSchedulerApp extends StatelessWidget {
   }
 }
 
+// লগইন স্ক্রিন
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -92,6 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Firebase ত্রুটির কোড থেকে স্থানীয় ভাষায় বার্তা দেখানোর ফাংশন
   String _getErrorMessage(BuildContext context, String code) {
     final l10n = AppLocalizations.of(context)!;
     switch (code) {
@@ -105,6 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // প্রমাণীকরণ (লগইন/নিবন্ধন) প্রক্রিয়ার জন্য সাধারণ ফাংশন
   Future<void> _authAction(Future<void> Function() action) async {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; _errorMessage = null; });
@@ -167,6 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+// ড্যাশবোর্ড স্ক্রিন
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -183,6 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _user = FirebaseAuth.instance.currentUser!;
   }
 
+  // পোস্ট শিডিউল করার ফাংশন
   Future<void> _schedulePost(String content, DateTime scheduleTime) async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -195,6 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final duration = scheduleTime.difference(DateTime.now());
       if (duration.isNegative) { 
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.scheduleTimeError)));
         return;
       }
 
@@ -213,9 +229,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  // পোস্ট ডিলিট করার ফাংশন
   Future<void> _deletePost(String docId) async {
     try {
+      // Workmanager থেকে টাস্ক বাতিল করা হচ্ছে
       await Workmanager().cancelByUniqueName("post_$docId");
+      // Firestore থেকে পোস্ট ডিলিট করা হচ্ছে
       await _firestore.collection('scheduled_posts').doc(docId).delete();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.deleteFailedError)));
@@ -287,6 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
+// নতুন পোস্ট তৈরির স্ক্রিন
 class CreatePostScreen extends StatefulWidget {
   final Function(String, DateTime) onSchedule;
   const CreatePostScreen({required this.onSchedule, super.key});
@@ -299,6 +319,329 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   DateTime _scheduleTime = DateTime.now().add(const Duration(minutes: 10));
   bool _isScheduling = false;
 
+  // তারিখ এবং সময় বাছাই করার ফাংশন
+  Future<void> // প্রয়োজনীয় প্যাকেজগুলো ইম্পোর্ট করা হচ্ছে
+import 'package.flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:social_share/social_share.dart';
+import 'package:intl/intl.dart';
+import 'dart:async';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:workmanager/workmanager.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package.flutter_gen/gen_l10n/app_localizations.dart';
+
+// Workmanager এর জন্য একটি টপ-লেভেল ফাংশন যা ব্যাকগ্রাউন্ডে কাজ করবে
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    // ব্যাকগ্রাউন্ড টাস্কের জন্য Firebase পুনরায় চালু করা হচ্ছে
+    await Firebase.initializeApp();
+    
+    if (inputData == null) {
+      return Future.value(false); // যদি কোনো ডেটা না থাকে তবে ব্যর্থ হবে
+    }
+
+    final String content = inputData['content'];
+    final String docId = inputData['docId'];
+
+    try {
+      // সোশ্যাল মিডিয়ায় পোস্ট শেয়ার করার চেষ্টা
+      await SocialShare.shareOptions(content);
+      // সফল হলে Firestore-এ স্ট্যাটাস আপডেট করা
+      await FirebaseFirestore.instance.collection('scheduled_posts').doc(docId).update({'status': 'posted'});
+      return Future.value(true);
+    } catch (e) {
+      // ব্যর্থ হলে Firestore-এ স্ট্যাটাস আপডেট করা
+      await FirebaseFirestore.instance.collection('scheduled_posts').doc(docId).update({'status': 'failed'});
+      return Future.value(false);
+    }
+  });
+}
+
+// অ্যাপ্লিকেশনের মূল ফাংশন
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Firebase চালু করা হচ্ছে
+  tz_data.initializeTimeZones(); // টাইমজোন ডেটা চালু করা হচ্ছে
+  // Workmanager চালু করা হচ্ছে এবং ডিবাগ মোড বন্ধ রাখা হচ্ছে
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+  runApp(const SocialSchedulerApp());
+}
+
+// মূল অ্যাপ ক্লাস
+class SocialSchedulerApp extends StatelessWidget {
+  const SocialSchedulerApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle, // স্থানীয়করণের জন্য শিরোনাম
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [ // সমর্থিত ভাষা
+        Locale('en'),
+        Locale('bn'),
+        Locale('es'),
+      ],
+      theme: ThemeData(
+        primarySwatch: Colors.blue, 
+        scaffoldBackgroundColor: Colors.grey[100]
+      ),
+      // ব্যবহারকারীর লগইন অবস্থা পরীক্ষা করে সঠিক স্ক্রিন দেখানো হচ্ছে
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return snapshot.hasData ? const DashboardScreen() : const LoginScreen();
+        },
+      ),
+    );
+  }
+}
+
+// লগইন স্ক্রিন
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  // Firebase ত্রুটির কোড থেকে স্থানীয় ভাষায় বার্তা দেখানোর ফাংশন
+  String _getErrorMessage(BuildContext context, String code) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (code) {
+      case 'invalid-email': return l10n.error_invalid_email;
+      case 'user-disabled': return l10n.error_user_disabled;
+      case 'user-not-found': return l10n.error_user_not_found;
+      case 'wrong-password': return l10n.error_wrong_password;
+      case 'email-already-in-use': return l10n.error_email_already_in_use;
+      case 'weak-password': return l10n.error_weak_password;
+      default: return l10n.error_unknown(code);
+    }
+  }
+
+  // প্রমাণীকরণ (লগইন/নিবন্ধন) প্রক্রিয়ার জন্য সাধারণ ফাংশন
+  Future<void> _authAction(Future<void> Function() action) async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      await action();
+    } on FirebaseAuthException catch (e) {
+      if (mounted) setState(() => _errorMessage = _getErrorMessage(context, e.code));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.appTitle), centerTitle: true),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(labelText: l10n.emailLabel, prefixIcon: const Icon(Icons.email), border: const OutlineInputBorder()),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) => (v == null || v.isEmpty || !v.contains('@')) ? l10n.invalidEmailError : null,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(labelText: l10n.passwordLabel, prefixIcon: const Icon(Icons.lock), border: const OutlineInputBorder()),
+                  obscureText: true,
+                  validator: (v) => (v == null || v.length < 6) ? l10n.passwordLengthError : null,
+                ),
+                if (_errorMessage != null)
+                  Padding(padding: const EdgeInsets.only(top: 16), child: Text(_errorMessage!, style: TextStyle(color: Colors.red[700]))),
+                const SizedBox(height: 30),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: () => _authAction(() => FirebaseAuth.instance.signInWithEmailAndPassword(email: _emailController.text.trim(), password: _passwordController.text.trim())),
+                        style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: Colors.blue[700]),
+                        child: Text(l10n.loginButton, style: const TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                TextButton(
+                  onPressed: () => _authAction(() => FirebaseAuth.instance.createUserWithEmailAndPassword(email: _emailController.text.trim(), password: _passwordController.text.trim())),
+                  child: Text(l10n.createAccountButton),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ড্যাশবোর্ড স্ক্রিন
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late User _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser!;
+  }
+
+  // পোস্ট শিডিউল করার ফাংশন
+  Future<void> _schedulePost(String content, DateTime scheduleTime) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final docRef = await _firestore.collection('scheduled_posts').add({
+        'content': content,
+        'schedule_time': scheduleTime,
+        'user_id': _user.uid,
+        'status': 'scheduled',
+      });
+
+      final duration = scheduleTime.difference(DateTime.now());
+      if (duration.isNegative) { 
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.scheduleTimeError)));
+        return;
+      }
+
+      await Workmanager().registerOneOffTask(
+        "post_${docRef.id}",
+        "socialPostTask",
+        initialDelay: duration,
+        inputData: {'content': content, 'docId': docRef.id},
+        constraints: Constraints(networkType: NetworkType.connected),
+      );
+      
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.postScheduledSuccess)));
+      
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.scheduleError)));
+    }
+  }
+
+  // পোস্ট ডিলিট করার ফাংশন
+  Future<void> _deletePost(String docId) async {
+    try {
+      // Workmanager থেকে টাস্ক বাতিল করা হচ্ছে
+      await Workmanager().cancelByUniqueName("post_$docId");
+      // Firestore থেকে পোস্ট ডিলিট করা হচ্ছে
+      await _firestore.collection('scheduled_posts').doc(docId).delete();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.deleteFailedError)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.dashboardTitle), centerTitle: true,
+        actions: [IconButton(tooltip: l10n.logoutButton, icon: const Icon(Icons.logout), onPressed: () => FirebaseAuth.instance.signOut())],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore.collection('scheduled_posts').where('user_id', isEqualTo: _user.uid).orderBy('schedule_time', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text(l10n.noScheduledPosts));
+          }
+          final posts = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final postData = posts[index].data() as Map<String, dynamic>;
+              final postId = posts[index].id;
+              
+              final scheduleTime = (postData['schedule_time'] as Timestamp).toDate();
+              
+              final status = postData['status'] ?? 'unknown';
+              final statusText = status == 'scheduled' ? l10n.statusScheduled : status == 'posted' ? l10n.statusPosted : l10n.statusFailed;
+              final statusColor = status == 'scheduled' ? Colors.orange : status == 'posted' ? Colors.green : Colors.red;
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  title: Text(postData['content'] ?? ''),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Text(DateFormat.yMd(Localizations.localeOf(context).languageCode).add_jm().format(scheduleTime)),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                        child: Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deletePost(postId)),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreatePostScreen(onSchedule: _schedulePost))),
+        backgroundColor: Colors.blue[700],
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+}
+
+// নতুন পোস্ট তৈরির স্ক্রিন
+class CreatePostScreen extends StatefulWidget {
+  final Function(String, DateTime) onSchedule;
+  const CreatePostScreen({required this.onSchedule, super.key});
+  @override
+  State<CreatePostScreen> createState() => _CreatePostScreenState();
+}
+
+class _CreatePostScreenState extends State<CreatePostScreen> {
+  final _contentController = TextEditingController();
+  DateTime _scheduleTime = DateTime.now().add(const Duration(minutes: 10));
+  bool _isScheduling = false;
+
+  // তারিখ এবং সময় বাছাই করার ফাংশন
   Future<void> _pickDateTime() async {
     final date = await showDatePicker(context: context, initialDate: _scheduleTime, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
     if (date == null) return;
@@ -311,6 +654,72 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.newPostTitle), centerTitle: true),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _contentController, 
+                maxLines: 5, 
+                decoration: InputDecoration(hintText: l10n.postContentHint, border: const OutlineInputBorder(), filled: true, fillColor: Colors.grey[100])
+              ),
+              const SizedBox(height: 25),
+              Text(l10n.scheduleTimeLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: _pickDateTime,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(10)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(DateFormat('yyyy-MM-dd hh:mm a', Localizations.localeOf(context).languageCode).format(_scheduleTime), style: const TextStyle(fontSize: 16)),
+                      const Icon(Icons.calendar_today),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              _isScheduling
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+                    onPressed: () async {
+                      if (_contentController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.postContentEmptyError)));
+                        return;
+                      }
+                      setState(() => _isScheduling = true);
+                      await widget.onSchedule(_contentController.text, _scheduleTime);
+                      if (mounted) Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), backgroundColor: Colors.blue[700]),
+                    child: Text(l10n.scheduleButton, style: const TextStyle(fontSize: 18, color: Colors.white)),
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}() async {
+    final date = await showDatePicker(context: context, initialDate: _scheduleTime, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+    if (date == null) return;
+    
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_scheduleTime));
+    if (time != null) {
+      setState(() => _scheduleTime = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+    }
+  }
+
+  @override
+  Widget  context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.newPostTitle), centerTitle: true),
