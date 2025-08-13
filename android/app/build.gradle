@@ -2,31 +2,41 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
+    // Firebase এর জন্য Google Services প্লাগইন
+    id 'com.google.gms.google-services'
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
 }
 
 android {
-    // এখানে আপনার নিজের প্যাকেজ নামটি ব্যবহার করুন
-    namespace "com.yourname.socialposterfinal" 
+    // আপনার প্যাকেজের নাম এখানে দিন
+    namespace "com.yourname.socialposterfinal"
     compileSdkVersion 34
-    
+
     defaultConfig {
-        // এখানেও আপনার নিজের প্যাকেজ নামটি ব্যবহার করুন
-        applicationId "com.yourname.socialposterfinal" 
+        // আপনার প্যাকেজের নাম এখানে দিন
+        applicationId "com.yourname.socialposterfinal"
         minSdkVersion 23
         targetSdkVersion 34
-        versionCode 1
-        versionName "1.0"
-        multiDexEnabled true
-    }
-
-    // এই অংশটি যুক্ত করা খুবই জরুরি
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true // মাল্টিডেক্স সক্রিয় করা হয়েছে
     }
 
     buildTypes {
@@ -41,8 +51,6 @@ flutter {
 }
 
 dependencies {
+     // সঠিক মাল্টিডেক্স লাইব্রেরি যোগ করা হয়েছে
      implementation 'androidx.multidex:multidex:2.0.1'
-     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
-
-apply plugin: 'com.google.gms.google-services'
